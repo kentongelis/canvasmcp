@@ -1,0 +1,14 @@
+{
+  "id": 1001,
+  "name": "Midterm Essay",
+  "description": "<p>Write a <strong>2000-word</strong> essay analyzing an AI system of your choice.</p><ul><li>Include ethical considerations</li><li>Cite at least 5 sources</li></ul>",
+  "due_at": "2026-05-08T23:59:00Z",
+  "points_possible": 100,
+  "submission_types": ["online_text_entry", "online_upload"],
+  "rubric": [
+    {"description": "Thesis and Argument", "points": 30},
+    {"description": "Research and Citations", "points": 25},
+    {"description": "Analysis Depth", "points": 30},
+    {"description": "Writing Quality", "points": 15}
+  ]
+}
