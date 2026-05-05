@@ -1,7 +1,12 @@
 import asyncio
+import re
 from datetime import datetime, timedelta, timezone
 
 from canvas_mcp.canvas_client import CanvasClient
+
+
+def _strip_html(text: str) -> str:
+    return re.sub(r"<[^>]+>", "", text or "").strip()
 
 
 async def list_courses(client: CanvasClient) -> list[dict] | dict:
@@ -54,6 +59,19 @@ async def get_upcoming_deadlines(client: CanvasClient, days: int = 7) -> list[di
 
     all_assignments.sort(key=lambda a: a["due_at"])
     return all_assignments
+
+
+async def get_assignment_detail(client: CanvasClient, course_id: int, assignment_id: int) -> dict:
+    data = await client.get(f"/courses/{course_id}/assignments/{assignment_id}")
+    if isinstance(data, dict) and "error" in data:
+        return data
+    return {
+        "name": data.get("name"),
+        "description": _strip_html(data.get("description", "")),
+        "due_at": data.get("due_at"),
+        "points_possible": data.get("points_possible"),
+        "rubric_criteria": data.get("rubric", []),
+    }
 
 
 async def get_missing_assignments(client: CanvasClient) -> list[dict] | dict:
