@@ -14,7 +14,6 @@ def load_fixture(name: str):
 # AC#4 — Agent resolves ambiguous course reference via list_courses first
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skip(reason="implementation pending in agent/assistant.py")
 async def test_agent_calls_list_courses_for_ambiguous_query():
     """
     When a query names a course ambiguously (e.g. "my AI class"), the agent
@@ -76,7 +75,6 @@ async def test_agent_calls_list_courses_for_ambiguous_query():
 # Multi-step query — grade report then deadlines chained
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skip(reason="implementation pending in agent/assistant.py")
 async def test_agent_multi_step_grade_then_deadlines():
     """
     Agent can chain multiple tool calls in a single session without error.
