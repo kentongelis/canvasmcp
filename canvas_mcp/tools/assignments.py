@@ -54,3 +54,19 @@ async def get_upcoming_deadlines(client: CanvasClient, days: int = 7) -> list[di
 
     all_assignments.sort(key=lambda a: a["due_at"])
     return all_assignments
+
+
+async def get_missing_assignments(client: CanvasClient) -> list[dict] | dict:
+    data = await client.get("/users/self/missing_submissions")
+    if isinstance(data, dict) and "error" in data:
+        return data
+    return [
+        {
+            "name": a["name"],
+            "due_at": a.get("due_at"),
+            "points_possible": a.get("points_possible"),
+            "course_id": a.get("course_id"),
+        }
+        for a in data
+        if not a.get("excused") and a.get("submitted_at") is None
+    ]
