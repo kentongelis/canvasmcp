@@ -2,6 +2,7 @@ from mcp.server.fastmcp import FastMCP
 from canvas_mcp.canvas_client import CanvasClient
 from canvas_mcp.tools.assignments import list_courses, get_upcoming_deadlines, get_missing_assignments
 from canvas_mcp.tools.grades import get_grade_report
+from canvas_mcp.tools.announcements import get_announcements
 
 mcp = FastMCP("canvas-mcp")
 
@@ -32,6 +33,12 @@ async def get_missing_assignments_tool() -> list[dict] | dict:
 async def get_grade_report_tool() -> list[dict] | dict:
     """Return current grade for each active course. Score is null if no grades posted yet."""
     return await get_grade_report(_client())
+
+
+@mcp.tool()
+async def get_announcements_tool(keyword: str = None) -> list[dict] | dict:
+    """Return recent Canvas announcements. Optionally filter by keyword."""
+    return await get_announcements(_client(), keyword=keyword)
 
 
 if __name__ == "__main__":
