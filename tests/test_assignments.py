@@ -57,3 +57,76 @@ async def test_list_courses_401(httpx_mock: HTTPXMock):
     result = await list_courses(make_client())
     assert isinstance(result, dict)
     assert result["error"] == 401
+
+
+# ---------------------------------------------------------------------------
+# get_upcoming_deadlines
+# ---------------------------------------------------------------------------
+
+async def test_deadlines_sorted_across_two_courses(httpx_mock: HTTPXMock):
+    # Courses endpoint (called by list_courses inside get_upcoming_deadlines)
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/courses",
+        json=load_fixture("courses.json"),
+    )
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/courses/101/assignments",
+        json=load_fixture("assignments_course_101.json"),
+    )
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/courses/102/assignments",
+        json=load_fixture("assignments_course_102.json"),
+    )
+    from canvas_mcp.tools.assignments import get_upcoming_deadlines
+    result = await get_upcoming_deadlines(make_client(), days=7)
+
+    assert isinstance(result, list)
+    # With today = 2026-05-05 and days=7, window is May 5–May 12 UTC
+    # Expected in order: API Design Project (May 6), Midterm Essay (May 8), Lab Report (May 11)
+    names = [r["name"] for r in result]
+    assert names == ["API Design Project", "Midterm Essay", "Lab Report"]
+
+
+async def test_deadlines_excludes_past_due(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses", json=load_fixture("courses.json"))
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/101/assignments", json=load_fixture("assignments_course_101.json"))
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/102/assignments", json=load_fixture("assignments_course_102.json"))
+    from canvas_mcp.tools.assignments import get_upcoming_deadlines
+    result = await get_upcoming_deadlines(make_client(), days=7)
+    names = [r["name"] for r in result]
+    assert "Past Due Assignment" not in names
+    assert "Far Future Assignment" not in names
+    assert "No Due Date Assignment" not in names
+
+
+async def test_deadlines_result_shape(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses", json=load_fixture("courses.json"))
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/101/assignments", json=load_fixture("assignments_course_101.json"))
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/102/assignments", json=load_fixture("assignments_course_102.json"))
+    from canvas_mcp.tools.assignments import get_upcoming_deadlines
+    result = await get_upcoming_deadlines(make_client(), days=7)
+    for item in result:
+        assert "name" in item
+        assert "due_at" in item
+        assert "course_name" in item
+        assert "points_possible" in item
+
+
+async def test_deadlines_one_course_429_still_returns_other(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses", json=load_fixture("courses.json"))
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/101/assignments", status_code=429)
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/102/assignments", json=load_fixture("assignments_course_102.json"))
+    from canvas_mcp.tools.assignments import get_upcoming_deadlines
+    result = await get_upcoming_deadlines(make_client(), days=7)
+    # Course 102 results should still come through
+    assert isinstance(result, list)
+    names = [r["name"] for r in result]
+    assert "API Design Project" in names
+
+
+async def test_deadlines_courses_401(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses", status_code=401)
+    from canvas_mcp.tools.assignments import get_upcoming_deadlines
+    result = await get_upcoming_deadlines(make_client(), days=7)
+    assert isinstance(result, dict)
+    assert result["error"] == 401
