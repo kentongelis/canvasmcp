@@ -1,0 +1,29 @@
+[
+  {
+    "id": 3001,
+    "name": "Truly Missing Assignment",
+    "due_at": "2026-04-20T23:59:00Z",
+    "points_possible": 80,
+    "excused": false,
+    "submitted_at": null,
+    "course_id": 101
+  },
+  {
+    "id": 3002,
+    "name": "Excused Assignment",
+    "due_at": "2026-04-21T23:59:00Z",
+    "points_possible": 40,
+    "excused": true,
+    "submitted_at": null,
+    "course_id": 101
+  },
+  {
+    "id": 3003,
+    "name": "Late Submitted Assignment",
+    "due_at": "2026-04-22T23:59:00Z",
+    "points_possible": 60,
+    "excused": false,
+    "submitted_at": "2026-04-25T10:00:00Z",
+    "course_id": 102
+  }
+]
