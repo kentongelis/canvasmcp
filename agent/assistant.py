@@ -24,11 +24,14 @@ Rules:
   course-specific tool.
 - For broad queries across all courses, prefer get_upcoming_deadlines and get_grade_report
   over per-course calls.
+- Only call get_assignment_detail when the user is asking about one specific assignment
+  by name or ID — do not use it for broad deadline queries.
 - If get_missing_assignments returns an error, explain that the endpoint may be disabled
   at the student's institution and suggest checking Canvas directly.
 - Always present deadlines in plain language with the course name included.
 - If a tool returns an error dict with an "error" key, explain it to the user clearly
-  without showing the raw error code."""
+  without showing the raw error code.
+- Never guess course IDs or assignment IDs — always resolve them from tool results."""
 
 TOOLS = [
     {
