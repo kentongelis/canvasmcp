@@ -1,6 +1,11 @@
 from mcp.server.fastmcp import FastMCP
 from canvas_mcp.canvas_client import CanvasClient
-from canvas_mcp.tools.assignments import list_courses, get_upcoming_deadlines, get_missing_assignments
+from canvas_mcp.tools.assignments import (
+    list_courses,
+    get_upcoming_deadlines,
+    get_missing_assignments,
+    get_assignment_detail,
+)
 from canvas_mcp.tools.grades import get_grade_report
 from canvas_mcp.tools.announcements import get_announcements
 
@@ -39,6 +44,12 @@ async def get_grade_report_tool() -> list[dict] | dict:
 async def get_announcements_tool(keyword: str = None) -> list[dict] | dict:
     """Return recent Canvas announcements. Optionally filter by keyword."""
     return await get_announcements(_client(), keyword=keyword)
+
+
+@mcp.tool()
+async def get_assignment_detail_tool(course_id: int, assignment_id: int) -> dict:
+    """Return full details and rubric for a specific assignment."""
+    return await get_assignment_detail(_client(), course_id=course_id, assignment_id=assignment_id)
 
 
 if __name__ == "__main__":
