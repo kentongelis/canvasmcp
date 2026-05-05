@@ -130,3 +130,76 @@ async def test_deadlines_courses_401(httpx_mock: HTTPXMock):
     result = await get_upcoming_deadlines(make_client(), days=7)
     assert isinstance(result, dict)
     assert result["error"] == 401
+
+
+# ---------------------------------------------------------------------------
+# get_missing_assignments
+# ---------------------------------------------------------------------------
+
+async def test_missing_excludes_excused_and_submitted(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        json=load_fixture("missing_submissions.json"),
+    )
+    from canvas_mcp.tools.assignments import get_missing_assignments
+    result = await get_missing_assignments(make_client())
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert result[0]["name"] == "Truly Missing Assignment"
+
+
+async def test_missing_excludes_excused(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        json=load_fixture("missing_submissions.json"),
+    )
+    from canvas_mcp.tools.assignments import get_missing_assignments
+    result = await get_missing_assignments(make_client())
+    names = [r["name"] for r in result]
+    assert "Excused Assignment" not in names
+    assert "Late Submitted Assignment" not in names
+
+
+async def test_missing_result_shape(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        json=load_fixture("missing_submissions.json"),
+    )
+    from canvas_mcp.tools.assignments import get_missing_assignments
+    result = await get_missing_assignments(make_client())
+    for item in result:
+        assert "name" in item
+        assert "due_at" in item
+        assert "points_possible" in item
+
+
+async def test_missing_empty_list(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        json=[],
+    )
+    from canvas_mcp.tools.assignments import get_missing_assignments
+    result = await get_missing_assignments(make_client())
+    assert result == []
+
+
+async def test_missing_401(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        status_code=401,
+    )
+    from canvas_mcp.tools.assignments import get_missing_assignments
+    result = await get_missing_assignments(make_client())
+    assert isinstance(result, dict)
+    assert result["error"] == 401
+
+
+async def test_missing_404_descriptive(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        status_code=404,
+    )
+    from canvas_mcp.tools.assignments import get_missing_assignments
+    result = await get_missing_assignments(make_client())
+    assert isinstance(result, dict)
+    assert result["error"] == 404
