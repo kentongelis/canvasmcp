@@ -1,4 +1,5 @@
 import json
+import re
 import pytest
 from pathlib import Path
 from pytest_httpx import HTTPXMock
@@ -22,8 +23,9 @@ def _mock_courses_and_announcements(httpx_mock: HTTPXMock, announcements: list):
         url=f"{BASE_URL}/api/v1/courses",
         json=load_fixture("courses.json"),
     )
+    # Announcements endpoint includes context_codes[] query params — match by prefix
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/announcements",
+        url=re.compile(re.escape(f"{BASE_URL}/api/v1/announcements")),
         json=announcements,
     )
 

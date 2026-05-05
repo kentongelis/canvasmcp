@@ -1,4 +1,5 @@
 import json
+import re
 import pytest
 from pathlib import Path
 from pytest_httpx import HTTPXMock
@@ -19,7 +20,7 @@ def make_client() -> CanvasClient:
 
 async def test_grade_report_returns_float_score(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=re.compile(re.escape(f"{BASE_URL}/api/v1/courses")),
         json=load_fixture("courses_with_grades.json"),
     )
     from canvas_mcp.tools.grades import get_grade_report
@@ -31,7 +32,7 @@ async def test_grade_report_returns_float_score(httpx_mock: HTTPXMock):
 
 async def test_grade_report_null_score_not_crash(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=re.compile(re.escape(f"{BASE_URL}/api/v1/courses")),
         json=load_fixture("courses_with_grades.json"),
     )
     from canvas_mcp.tools.grades import get_grade_report
@@ -42,7 +43,7 @@ async def test_grade_report_null_score_not_crash(httpx_mock: HTTPXMock):
 
 async def test_grade_report_missing_enrollments_key(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=re.compile(re.escape(f"{BASE_URL}/api/v1/courses")),
         json=load_fixture("courses_with_grades.json"),
     )
     from canvas_mcp.tools.grades import get_grade_report
@@ -53,7 +54,7 @@ async def test_grade_report_missing_enrollments_key(httpx_mock: HTTPXMock):
 
 async def test_grade_report_result_shape(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=re.compile(re.escape(f"{BASE_URL}/api/v1/courses")),
         json=load_fixture("courses_with_grades.json"),
     )
     from canvas_mcp.tools.grades import get_grade_report
@@ -65,7 +66,7 @@ async def test_grade_report_result_shape(httpx_mock: HTTPXMock):
 
 async def test_grade_report_401(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=re.compile(re.escape(f"{BASE_URL}/api/v1/courses")),
         status_code=401,
     )
     from canvas_mcp.tools.grades import get_grade_report

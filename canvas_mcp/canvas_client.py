@@ -32,9 +32,12 @@ class CanvasClient:
             while url:
                 response = await http.get(url, headers=self._headers, params=params)
 
-                if response.status_code in (401, 404, 429):
-                    # Return whatever we have plus the error so callers can decide
-                    return results
+                if response.status_code == 401:
+                    return {"error": 401, "message": "Unauthorized — check your Canvas API token."}
+                if response.status_code == 404:
+                    return {"error": 404, "message": "Resource not found."}
+                if response.status_code == 429:
+                    return {"error": 429, "message": "Canvas rate limit exceeded. Wait before retrying."}
 
                 response.raise_for_status()
                 data = response.json()
