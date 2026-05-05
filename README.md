@@ -107,20 +107,21 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and fill in both values:
+Edit `.env` and fill in all three values:
 
 ```
 CANVAS_BASE_URL=https://your-institution.instructure.com
 CANVAS_API_TOKEN=your_token_here
+ANTHROPIC_API_KEY=sk-ant-your-key-here
 ```
 
-Your Canvas base URL is the root domain your school uses — e.g. `https://dominican.instructure.com`. Your token is generated in Canvas under **Account → Settings → Approved Integrations → New Access Token**.
+**`CANVAS_BASE_URL`** — the root domain your school uses, e.g. `https://dominican.instructure.com`.
 
-To use the agent you also need an Anthropic API key in your environment:
+**`CANVAS_API_TOKEN`** — generated in Canvas under **Account → Settings → Approved Integrations → New Access Token**.
 
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
+**`ANTHROPIC_API_KEY`** — your key from [console.anthropic.com](https://console.anthropic.com). Required for the agent; not needed to run the MCP server alone.
+
+The agent reads all keys from `.env` automatically via `python-dotenv`. If `ANTHROPIC_API_KEY` is missing it will raise a clear error at startup rather than failing silently.
 
 ---
 
