@@ -1,0 +1,23 @@
+[
+  {
+    "id": 5001,
+    "title": "Exam Review Session Tomorrow",
+    "message": "<p>We will hold an <strong>exam</strong> review session tomorrow at 3pm in Room 204.</p>",
+    "posted_at": "2026-05-04T10:00:00Z",
+    "context_code": "course_101"
+  },
+  {
+    "id": 5002,
+    "title": "Project Deadline Extended",
+    "message": "<p>The project deadline has been extended by one week. New due date: May 15.</p>",
+    "posted_at": "2026-05-03T14:00:00Z",
+    "context_code": "course_102"
+  },
+  {
+    "id": 5003,
+    "title": "Office Hours Update",
+    "message": "<p>Office hours this week are moved to <em>Friday 2-4pm</em>.</p>",
+    "posted_at": "2026-05-02T09:00:00Z",
+    "context_code": "course_101"
+  }
+]
