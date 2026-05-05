@@ -1,7 +1,11 @@
 import json
+import os
 import sys
 import asyncio
 import anthropic
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from canvas_mcp.canvas_client import CanvasClient
 from canvas_mcp.tools.assignments import (
@@ -13,7 +17,11 @@ from canvas_mcp.tools.assignments import (
 from canvas_mcp.tools.grades import get_grade_report
 from canvas_mcp.tools.announcements import get_announcements
 
-anthropic_client = anthropic.AsyncAnthropic()
+_api_key = os.getenv("ANTHROPIC_API_KEY")
+if not _api_key:
+    raise RuntimeError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
+
+anthropic_client = anthropic.AsyncAnthropic(api_key=_api_key)
 
 SYSTEM_PROMPT = """You are a Canvas LMS academic assistant. You help students understand
 their upcoming deadlines, missing assignments, grades, and course announcements.
