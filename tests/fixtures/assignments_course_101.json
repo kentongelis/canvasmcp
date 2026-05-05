@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1001,
+    "name": "Midterm Essay",
+    "due_at": "2026-05-08T23:59:00Z",
+    "points_possible": 100
+  },
+  {
+    "id": 1002,
+    "name": "Past Due Assignment",
+    "due_at": "2026-04-01T23:59:00Z",
+    "points_possible": 50
+  },
+  {
+    "id": 1003,
+    "name": "Far Future Assignment",
+    "due_at": "2026-06-01T23:59:00Z",
+    "points_possible": 75
+  },
+  {
+    "id": 1004,
+    "name": "No Due Date Assignment",
+    "due_at": null,
+    "points_possible": 25
+  }
+]

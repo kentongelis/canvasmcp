@@ -1,0 +1,14 @@
+[
+  {
+    "id": 2001,
+    "name": "API Design Project",
+    "due_at": "2026-05-06T23:59:00Z",
+    "points_possible": 150
+  },
+  {
+    "id": 2002,
+    "name": "Lab Report",
+    "due_at": "2026-05-11T23:59:00Z",
+    "points_possible": 40
+  }
+]
