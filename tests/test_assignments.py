@@ -203,3 +203,77 @@ async def test_missing_404_descriptive(httpx_mock: HTTPXMock):
     result = await get_missing_assignments(make_client())
     assert isinstance(result, dict)
     assert result["error"] == 404
+
+
+# ---------------------------------------------------------------------------
+# get_assignment_detail
+# ---------------------------------------------------------------------------
+
+async def test_assignment_detail_happy_path(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/courses/101/assignments/1001",
+        json=load_fixture("assignment_detail.json"),
+    )
+    from canvas_mcp.tools.assignments import get_assignment_detail
+    result = await get_assignment_detail(make_client(), course_id=101, assignment_id=1001)
+    assert result["name"] == "Midterm Essay"
+    assert result["points_possible"] == 100
+    assert result["due_at"] == "2026-05-08T23:59:00Z"
+    assert len(result["rubric_criteria"]) == 4
+
+
+async def test_assignment_detail_html_stripped(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/courses/101/assignments/1001",
+        json=load_fixture("assignment_detail.json"),
+    )
+    from canvas_mcp.tools.assignments import get_assignment_detail
+    result = await get_assignment_detail(make_client(), course_id=101, assignment_id=1001)
+    assert "<" not in result["description"]
+    assert ">" not in result["description"]
+    assert "2000-word" in result["description"]
+
+
+async def test_assignment_detail_no_rubric(httpx_mock: HTTPXMock):
+    no_rubric = {**load_fixture("assignment_detail.json")}
+    del no_rubric["rubric"]
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/courses/101/assignments/1001",
+        json=no_rubric,
+    )
+    from canvas_mcp.tools.assignments import get_assignment_detail
+    result = await get_assignment_detail(make_client(), course_id=101, assignment_id=1001)
+    assert result["rubric_criteria"] == []
+
+
+async def test_assignment_detail_result_shape(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/courses/101/assignments/1001",
+        json=load_fixture("assignment_detail.json"),
+    )
+    from canvas_mcp.tools.assignments import get_assignment_detail
+    result = await get_assignment_detail(make_client(), course_id=101, assignment_id=1001)
+    for key in ("name", "description", "due_at", "points_possible", "rubric_criteria"):
+        assert key in result
+
+
+async def test_assignment_detail_404(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/courses/101/assignments/9999",
+        status_code=404,
+    )
+    from canvas_mcp.tools.assignments import get_assignment_detail
+    result = await get_assignment_detail(make_client(), course_id=101, assignment_id=9999)
+    assert isinstance(result, dict)
+    assert result["error"] == 404
+
+
+async def test_assignment_detail_401(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/courses/101/assignments/1001",
+        status_code=401,
+    )
+    from canvas_mcp.tools.assignments import get_assignment_detail
+    result = await get_assignment_detail(make_client(), course_id=101, assignment_id=1001)
+    assert isinstance(result, dict)
+    assert result["error"] == 401
