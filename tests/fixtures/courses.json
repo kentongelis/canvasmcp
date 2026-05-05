@@ -1,0 +1,5 @@
+[
+  {"id": 101, "name": "ACS 4220 AI Engineering", "enrollment_state": "active"},
+  {"id": 102, "name": "ACS 3930 Web APIs", "enrollment_state": "active"},
+  {"id": 103, "name": "ACS 1000 Intro CS", "enrollment_state": "completed"}
+]
