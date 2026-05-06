@@ -1,6 +1,9 @@
 import os
 import re
 import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class CanvasClient:

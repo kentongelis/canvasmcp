@@ -147,6 +147,7 @@ class CanvasHandler(BaseHTTPRequestHandler):
             self._send_json(ROUTES[path])
             return
 
+        print(f"  [404] No route matched: {self.path!r}", flush=True)
         self._send_json({"errors": [{"message": "not found"}]}, status=404)
 
     def _send_json(self, data, status=200):
@@ -159,7 +160,7 @@ class CanvasHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         status = args[1] if len(args) > 1 else "?"
-        print(f"  [{status}] {args[0]}")
+        print(f"  [{status}] {args[0]}", flush=True)
 
 
 if __name__ == "__main__":
