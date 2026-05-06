@@ -164,7 +164,7 @@ class CanvasHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    port = 8000
+    port = 8001
     print(f"Fake Canvas server running at http://localhost:{port}")
     print("Make sure your .env has:")
     print(f"  CANVAS_BASE_URL=http://localhost:{port}")
