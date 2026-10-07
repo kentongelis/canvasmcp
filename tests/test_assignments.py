@@ -1,5 +1,6 @@
 import json
 import pytest
+from datetime import datetime, timezone
 from pathlib import Path
 from pytest_httpx import HTTPXMock
 from canvas_mcp.canvas_client import CanvasClient
@@ -8,6 +9,20 @@ BASE_URL = "https://canvas.example.com"
 TOKEN = "test-token-abc"
 
 FIXTURES = Path(__file__).parent / "fixtures"
+
+# Fixture due dates are written relative to this date
+FROZEN_NOW = datetime(2026, 5, 5, 12, 0, tzinfo=timezone.utc)
+
+
+class _FrozenDatetime(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return FROZEN_NOW if tz else FROZEN_NOW.replace(tzinfo=None)
+
+
+@pytest.fixture(autouse=True)
+def freeze_time(monkeypatch):
+    monkeypatch.setattr("canvas_mcp.tools.assignments.datetime", _FrozenDatetime)
 
 
 def load_fixture(name: str):
