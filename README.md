@@ -4,7 +4,8 @@ A Python MCP server and agentic assistant for Canvas LMS that lets students ask 
 
 **Course:** ACS 4220 (AI Engineering), Dominican University  
 **Student:** Kenton Gelis  
-**Last Updated:** 2026-05-05
+**Last Updated:** 2026-10-09  
+**Current Phase:** All six student tools, the agent loop and 62 passing tests are in place after a robustness pass (live-Canvas course filtering, full pagination, broader error handling); teacher tools are in progress and the live-Canvas check is still pending.
 
 ---
 
@@ -31,14 +32,16 @@ The project is built on two patterns that work together:
 
 The six tools cover the core student workflow:
 
-| Tool | What it does | Canvas endpoint |
-|---|---|---|
-| `list_courses` | Active courses with IDs | `GET /courses` |
-| `get_upcoming_deadlines` | Assignments due within N days, sorted, cross-course | `GET /courses/:id/assignments` |
-| `get_missing_assignments` | Past-due unsubmitted work (excused items filtered out) | `GET /users/self/missing_submissions` |
-| `get_grade_report` | Current score per course; `null` when no grades posted yet | `GET /courses?include[]=total_scores` |
-| `get_announcements` | Recent instructor posts, keyword-filterable | `GET /announcements` |
-| `get_assignment_detail` | Full instructions and rubric for one assignment | `GET /courses/:id/assignments/:id` |
+| Tool | What it does | Canvas endpoint | Status |
+|---|---|---|---|
+| `list_courses` | Active courses with IDs | `GET /courses?enrollment_state=active` | ✅ Complete |
+| `get_upcoming_deadlines` | Assignments due within N days, sorted, cross-course | `GET /courses/:id/assignments` | ✅ Complete |
+| `get_missing_assignments` | Past-due unsubmitted work (excused items filtered out) | `GET /users/self/missing_submissions` | ✅ Complete |
+| `get_grade_report` | Current score per course from your student enrollment; `null` when no grades posted yet | `GET /courses?include[]=total_scores&enrollment_type=student` | ✅ Complete |
+| `get_announcements` | Recent instructor posts, keyword-filterable | `GET /announcements` | ✅ Complete |
+| `get_assignment_detail` | Full instructions and rubric for one assignment | `GET /courses/:id/assignments/:id` | ✅ Complete |
+
+All list endpoints are fetched with `per_page=100` and follow Canvas's `Link` header, so courses with many assignments or students with many courses aren't cut off at Canvas's default page size of 10.
 
 ### 2. Agent SDK Loop
 
@@ -58,7 +61,8 @@ canvasmcp/
 │   └── tools/
 │       ├── assignments.py  # list_courses, get_upcoming_deadlines, get_missing_assignments, get_assignment_detail
 │       ├── grades.py       # get_grade_report
-│       └── announcements.py # get_announcements
+│       ├── announcements.py # get_announcements
+│       └── teacher_assignments.py # list_teaching_courses (teacher tools, in progress)
 ├── agent/
 │   └── assistant.py       # Anthropic SDK tool-use loop, system prompt, CLI entry
 ├── tests/
@@ -68,6 +72,7 @@ canvasmcp/
 │   ├── test_announcements.py
 │   ├── test_agent.py
 │   ├── test_server.py
+│   ├── test_teacher_assignments.py
 │   └── fixtures/          # Mocked Canvas API JSON responses (no live Canvas needed)
 ├── .env.example
 ├── requirements.txt
@@ -139,10 +144,10 @@ The server starts on stdio transport. To connect it to Claude Desktop, add it to
 {
   "mcpServers": {
     "canvas": {
-      "command": "python3",
+      "command": "/path/to/canvasmcp/.venv/bin/python",
       "args": ["-m", "canvas_mcp.server"],
-      "cwd": "/path/to/canvasmcp",
       "env": {
+        "PYTHONPATH": "/path/to/canvasmcp",
         "CANVAS_BASE_URL": "https://your-institution.instructure.com",
         "CANVAS_API_TOKEN": "your_token_here"
       }
@@ -150,6 +155,12 @@ The server starts on stdio transport. To connect it to Claude Desktop, add it to
   }
 }
 ```
+
+Replace `/path/to/canvasmcp` with the absolute path to your clone (run `pwd` inside it). On Windows, use `.venv\Scripts\python.exe` for `command`.
+
+- **`command` must be the virtual environment's Python.** Claude Desktop launches the server outside your shell, so a bare `python3` resolves to the system interpreter, which doesn't have `mcp` or `httpx` installed.
+- **`PYTHONPATH` is required.** Claude Desktop doesn't start the server from the project directory, so without it `-m canvas_mcp.server` fails with `No module named canvas_mcp`.
+- After editing the config, fully quit and reopen Claude Desktop. If the tools don't appear, check the server logs (on macOS: `~/Library/Logs/Claude/mcp-server-canvas.log`).
 
 Once connected, you can ask Claude Desktop questions like "what assignments do I have due this week?" and it will call the Canvas tools automatically.
 
@@ -185,17 +196,23 @@ To see each test by name:
 python3 -m pytest -v
 ```
 
-42 tests across 6 test files covering happy-path and error-path for every tool.
+62 tests across 7 test files covering happy-path and error-path for every tool, plus client-level tests for pagination, 403/5xx responses, network failures and missing config.
 
 ---
 
 ## Implementation Status
 
 ### Completed ✅
-- `CanvasClient` — httpx wrapper with Bearer auth, 401/404/429 error handling, Link-header pagination
+- `CanvasClient`: httpx wrapper with Bearer auth, Link-header pagination with `per_page=100`, and error dicts for every non-2xx status, network failures, non-JSON responses and missing config
 - All 6 MCP tools implemented and registered in the FastMCP server
+- Course filtering reads Canvas's real response shape (`enrollments[].enrollment_state`)
+- `get_grade_report` takes the score from the student enrollment, so a course where you're also a TA still reports your grade
 - Agent SDK loop with multi-step tool chaining and ambiguous course resolution
-- Full test suite (42 tests, all passing)
+- Claude Desktop setup instructions fixed (virtual environment's Python plus `PYTHONPATH`)
+- Full test suite (62 tests, all passing)
+
+### In Progress 🔄
+- **Teacher tools** (read-only counterparts of the student tools). `list_teaching_courses` is implemented in `canvas_mcp/tools/teacher_assignments.py` with 4 passing tests, but it isn't registered in the MCP server yet. The other six teacher tools and `agent/teacher_assistant.py` haven't been started.
 
 ### Acceptance Criteria
 
@@ -203,9 +220,9 @@ python3 -m pytest -v
 - [x] `get_missing_assignments` returns only unsubmitted, past-due items (not excused)
 - [x] `get_grade_report` returns current score as a float; handles courses with no grades yet (`null`, not crash)
 - [x] Agent correctly resolves ambiguous course references (e.g., "my CS class") via `list_courses` before fetching
-- [x] All tools handle Canvas API errors (401, 404, 429) gracefully with descriptive messages
+- [x] All tools handle Canvas API errors (401, 404, 429) gracefully with descriptive messages. This now also covers 403, 5xx, network errors and missing config
 - [x] Test suite covers happy path + error path for each tool using mocked HTTP responses
-- [x] Server starts in <2 seconds; individual tool calls complete in <3 seconds
+- [ ] Server starts in <2 seconds; individual tool calls complete in <3 seconds. Startup is met (~0.3s to load the server and register its tools). Tool-call latency hasn't been measured against live Canvas since the demo server was removed
 
 ### Milestones
 
@@ -216,6 +233,13 @@ python3 -m pytest -v
 | 3 | Agent SDK loop, system prompt, multi-step query handling | ✅ Complete |
 | 4 | Polish, README, presentation prep | 🔄 In Progress |
 
+### Next Steps
+
+1. **Run a live Canvas smoke test.** Generate a fresh Canvas token (the current one returns 401), then run each of the six tools against your real account. This confirms the course-filtering fix and lets us time each call against the <3 second goal.
+2. **Continue the teacher tools.** Next up are `get_teaching_deadlines` and `get_grading_queue`, then the remaining teacher tools, registering them in the server, and `agent/teacher_assistant.py`.
+3. **Update `architecture.md`**: its acceptance-criteria list still describes error handling as only 401/404/429.
+4. **Prepare the presentation.**
+
 ---
 
 ## Error Handling
@@ -224,9 +248,16 @@ Every tool returns a descriptive error dict on API failures — it never raises 
 
 ```python
 {"error": 401, "message": "Unauthorized — check your Canvas API token."}
+{"error": 403, "message": "Forbidden — your institution or instructor has not given you access to this Canvas data."}
 {"error": 404, "message": "Resource not found."}
 {"error": 429, "message": "Canvas rate limit exceeded. Wait before retrying."}
+{"error": 500, "message": "Canvas server error (500). Try again later."}
+{"error": "connection", "message": "Could not reach Canvas (ConnectError). Check CANVAS_BASE_URL and your network connection."}
+{"error": "invalid_response", "message": "Canvas returned a non-JSON response — check that CANVAS_BASE_URL points to your Canvas instance."}
+{"error": "config", "message": "CANVAS_API_TOKEN is not set. Add it to your .env file."}
 ```
+
+Canvas usually throttles with a **403** whose body says "Rate Limit Exceeded" rather than a 429. The client detects this and returns the rate-limit message, so the agent says "wait" instead of "you don't have access".
 
 Note: `get_missing_assignments` may return a 404 on some Canvas instances because institutions can disable this endpoint at the admin level. The agent is prompted to explain this to the user when it occurs.
 
