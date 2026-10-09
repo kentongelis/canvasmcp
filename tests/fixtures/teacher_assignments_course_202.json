@@ -1,0 +1,23 @@
+[
+  {
+    "id": 4001,
+    "name": "REST Lab",
+    "due_at": "2026-05-06T23:59:00Z",
+    "points_possible": 40,
+    "needs_grading_count": 5
+  },
+  {
+    "id": 4002,
+    "name": "Midterm Exam",
+    "due_at": "2026-05-10T23:59:00Z",
+    "points_possible": 100,
+    "needs_grading_count": 0
+  },
+  {
+    "id": 4003,
+    "name": "Homework 2",
+    "due_at": "2026-04-28T23:59:00Z",
+    "points_possible": 30,
+    "needs_grading_count": 8
+  }
+]

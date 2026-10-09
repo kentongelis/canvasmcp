@@ -1,0 +1,30 @@
+[
+  {
+    "id": 3001,
+    "name": "Project Proposal",
+    "due_at": "2026-05-07T23:59:00Z",
+    "points_possible": 50,
+    "needs_grading_count": 0
+  },
+  {
+    "id": 3002,
+    "name": "Week 3 Reflection",
+    "due_at": "2026-04-20T23:59:00Z",
+    "points_possible": 20,
+    "needs_grading_count": 12
+  },
+  {
+    "id": 3003,
+    "name": "Final Project",
+    "due_at": "2026-06-10T23:59:00Z",
+    "points_possible": 200,
+    "needs_grading_count": 0
+  },
+  {
+    "id": 3004,
+    "name": "Participation",
+    "due_at": null,
+    "points_possible": 10,
+    "needs_grading_count": 3
+  }
+]
