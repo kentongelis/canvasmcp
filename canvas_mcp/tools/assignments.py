@@ -24,7 +24,15 @@ async def get_upcoming_deadlines(client: CanvasClient, days: int = 7) -> list[di
     courses = await list_courses(client)
     if isinstance(courses, dict) and "error" in courses:
         return courses
+    return await _deadlines_for_courses(client, courses, days)
 
+
+async def _deadlines_for_courses(
+    client: CanvasClient,
+    courses: list[dict],
+    days: int,
+    extra_fields: tuple[str, ...] = (),
+) -> list[dict]:
     now = datetime.now(timezone.utc)
     window_end = now + timedelta(days=days)
 
@@ -39,12 +47,15 @@ async def get_upcoming_deadlines(client: CanvasClient, days: int = 7) -> list[di
                 continue
             due_dt = datetime.fromisoformat(due_at.replace("Z", "+00:00"))
             if now < due_dt <= window_end:
-                items.append({
+                item = {
                     "name": a["name"],
                     "due_at": due_at,
                     "course_name": course["name"],
                     "points_possible": a.get("points_possible"),
-                })
+                }
+                for field in extra_fields:
+                    item[field] = a.get(field)
+                items.append(item)
         return items
 
     results = await asyncio.gather(
