@@ -74,7 +74,7 @@ async def test_client_429_returns_error_dict(httpx_mock: HTTPXMock):
 async def test_get_all_pages_follows_link_header(httpx_mock: HTTPXMock):
     page2_url = f"{BASE_URL}/api/v1/courses?page=2"
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=f"{BASE_URL}/api/v1/courses?per_page=100",
         json=[{"id": 1}],
         headers={"Link": f'<{page2_url}>; rel="next"'},
     )
@@ -89,7 +89,7 @@ async def test_get_all_pages_follows_link_header(httpx_mock: HTTPXMock):
 
 async def test_get_all_pages_no_next_link(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=f"{BASE_URL}/api/v1/courses?per_page=100",
         json=[{"id": 1}, {"id": 2}],
     )
     client = CanvasClient(base_url=BASE_URL, token=TOKEN)

@@ -9,7 +9,7 @@ TOKEN = "test-token-abc"
 FIXTURES = Path(__file__).parent / "fixtures"
 
 TEACHING_COURSES_URL = (
-    f"{BASE_URL}/api/v1/courses?enrollment_type=teacher&enrollment_state=active"
+    f"{BASE_URL}/api/v1/courses?enrollment_type=teacher&enrollment_state=active&per_page=100"
 )
 
 

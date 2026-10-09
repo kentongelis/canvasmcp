@@ -1,5 +1,5 @@
 [
-  {"id": 201, "name": "ACS 4220 AI Engineering (Section 1)", "enrollment_state": "active"},
-  {"id": 202, "name": "ACS 3930 Web APIs (Section 2)", "enrollment_state": "active"},
-  {"id": 203, "name": "ACS 1000 Intro CS (Spring 2025)", "enrollment_state": "completed"}
+  {"id": 201, "name": "ACS 4220 AI Engineering (Section 1)", "enrollments": [{"type": "teacher", "enrollment_state": "active"}]},
+  {"id": 202, "name": "ACS 3930 Web APIs (Section 2)", "enrollments": [{"type": "teacher", "enrollment_state": "active"}]},
+  {"id": 203, "name": "ACS 1000 Intro CS (Spring 2025)", "enrollments": [{"type": "teacher", "enrollment_state": "completed"}]}
 ]

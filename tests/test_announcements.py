@@ -20,7 +20,7 @@ def make_client() -> CanvasClient:
 
 def _mock_courses_and_announcements(httpx_mock: HTTPXMock, announcements: list):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=f"{BASE_URL}/api/v1/courses?enrollment_state=active&per_page=100",
         json=load_fixture("courses.json"),
     )
     # Announcements endpoint includes context_codes[] query params — match by prefix
@@ -80,7 +80,7 @@ async def test_announcements_empty_result(httpx_mock: HTTPXMock):
 
 
 async def test_announcements_401(httpx_mock: HTTPXMock):
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses", status_code=401)
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses?enrollment_state=active&per_page=100", status_code=401)
     from canvas_mcp.tools.announcements import get_announcements
     result = await get_announcements(make_client())
     assert isinstance(result, dict)

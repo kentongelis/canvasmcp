@@ -2,22 +2,19 @@
   {
     "id": 101,
     "name": "ACS 4220 AI Engineering",
-    "enrollment_state": "active",
     "enrollments": [
-      {"computed_current_score": 88.5, "computed_final_score": 86.0}
+      {"type": "student", "enrollment_state": "active", "computed_current_score": 88.5, "computed_final_score": 86.0}
     ]
   },
   {
     "id": 102,
     "name": "ACS 3930 Web APIs",
-    "enrollment_state": "active",
     "enrollments": [
-      {"computed_current_score": null, "computed_final_score": null}
+      {"type": "student", "enrollment_state": "active", "computed_current_score": null, "computed_final_score": null}
     ]
   },
   {
     "id": 103,
-    "name": "ACS 2000 Data Structures",
-    "enrollment_state": "active"
+    "name": "ACS 2000 Data Structures"
   }
 ]

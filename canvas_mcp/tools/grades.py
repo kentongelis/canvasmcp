@@ -2,7 +2,7 @@ from canvas_mcp.canvas_client import CanvasClient
 
 
 async def get_grade_report(client: CanvasClient) -> list[dict] | dict:
-    data = await client.get("/courses", params={
+    data = await client.get_all_pages("/courses", params={
         "include[]": "total_scores",
         "enrollment_state": "active",
     })

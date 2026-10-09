@@ -1,4 +1,5 @@
 from canvas_mcp.canvas_client import CanvasClient
+from canvas_mcp.tools.assignments import _has_active_enrollment
 
 
 async def list_teaching_courses(client: CanvasClient) -> list[dict] | dict:
@@ -9,5 +10,5 @@ async def list_teaching_courses(client: CanvasClient) -> list[dict] | dict:
     return [
         {"id": c["id"], "name": c["name"]}
         for c in result
-        if c.get("enrollment_state") == "active"
+        if _has_active_enrollment(c)
     ]

@@ -9,14 +9,22 @@ def _strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", "", text or "").strip()
 
 
+def _has_active_enrollment(course: dict) -> bool:
+    # Canvas reports enrollment state per enrollment, not on the course itself
+    return any(
+        e.get("enrollment_state") == "active"
+        for e in course.get("enrollments") or []
+    )
+
+
 async def list_courses(client: CanvasClient) -> list[dict] | dict:
-    result = await client.get_all_pages("/courses")
+    result = await client.get_all_pages("/courses", params={"enrollment_state": "active"})
     if isinstance(result, dict) and "error" in result:
         return result
     return [
         {"id": c["id"], "name": c["name"]}
         for c in result
-        if c.get("enrollment_state") == "active"
+        if _has_active_enrollment(c)
     ]
 
 
@@ -37,7 +45,7 @@ async def _deadlines_for_courses(
     window_end = now + timedelta(days=days)
 
     async def fetch_assignments(course: dict) -> list[dict]:
-        data = await client.get(f"/courses/{course['id']}/assignments")
+        data = await client.get_all_pages(f"/courses/{course['id']}/assignments")
         if isinstance(data, dict) and "error" in data:
             return []
         items = []
@@ -86,7 +94,7 @@ async def get_assignment_detail(client: CanvasClient, course_id: int, assignment
 
 
 async def get_missing_assignments(client: CanvasClient) -> list[dict] | dict:
-    data = await client.get("/users/self/missing_submissions")
+    data = await client.get_all_pages("/users/self/missing_submissions")
     if isinstance(data, dict) and "error" in data:
         return data
     return [

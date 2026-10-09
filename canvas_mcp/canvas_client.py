@@ -29,6 +29,7 @@ class CanvasClient:
 
     async def get_all_pages(self, path: str, params: dict = None) -> list:
         url = f"{self.base_url}/api/v1{path}"
+        params = {"per_page": 100, **(params or {})}
         results = []
 
         async with httpx.AsyncClient() as http:

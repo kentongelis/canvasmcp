@@ -20,7 +20,7 @@ async def _announcements_for_courses(
     context_codes = [f"course_{c['id']}" for c in courses]
     params = {f"context_codes[]": context_codes}
 
-    data = await client.get("/announcements", params=params)
+    data = await client.get_all_pages("/announcements", params=params)
     if isinstance(data, dict) and "error" in data:
         return data
 

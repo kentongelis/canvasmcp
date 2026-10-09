@@ -10,6 +10,8 @@ TOKEN = "test-token-abc"
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
+COURSES_URL = f"{BASE_URL}/api/v1/courses?enrollment_state=active&per_page=100"
+
 # Fixture due dates are written relative to this date
 FROZEN_NOW = datetime(2026, 5, 5, 12, 0, tzinfo=timezone.utc)
 
@@ -39,7 +41,7 @@ def make_client() -> CanvasClient:
 
 async def test_list_courses_returns_only_active(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=COURSES_URL,
         json=load_fixture("courses.json"),
     )
     from canvas_mcp.tools.assignments import list_courses
@@ -53,7 +55,7 @@ async def test_list_courses_returns_only_active(httpx_mock: HTTPXMock):
 
 async def test_list_courses_shape(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=COURSES_URL,
         json=load_fixture("courses.json"),
     )
     from canvas_mcp.tools.assignments import list_courses
@@ -63,9 +65,18 @@ async def test_list_courses_shape(httpx_mock: HTTPXMock):
         assert "name" in course
 
 
+async def test_list_courses_requests_active_enrollments(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=COURSES_URL, json=load_fixture("courses.json"))
+    from canvas_mcp.tools.assignments import list_courses
+    await list_courses(make_client())
+    request = httpx_mock.get_request()
+    assert request.url.params["enrollment_state"] == "active"
+    assert request.url.params["per_page"] == "100"
+
+
 async def test_list_courses_401(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=COURSES_URL,
         status_code=401,
     )
     from canvas_mcp.tools.assignments import list_courses
@@ -81,15 +92,15 @@ async def test_list_courses_401(httpx_mock: HTTPXMock):
 async def test_deadlines_sorted_across_two_courses(httpx_mock: HTTPXMock):
     # Courses endpoint (called by list_courses inside get_upcoming_deadlines)
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses",
+        url=COURSES_URL,
         json=load_fixture("courses.json"),
     )
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses/101/assignments",
+        url=f"{BASE_URL}/api/v1/courses/101/assignments?per_page=100",
         json=load_fixture("assignments_course_101.json"),
     )
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/courses/102/assignments",
+        url=f"{BASE_URL}/api/v1/courses/102/assignments?per_page=100",
         json=load_fixture("assignments_course_102.json"),
     )
     from canvas_mcp.tools.assignments import get_upcoming_deadlines
@@ -103,9 +114,9 @@ async def test_deadlines_sorted_across_two_courses(httpx_mock: HTTPXMock):
 
 
 async def test_deadlines_excludes_past_due(httpx_mock: HTTPXMock):
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses", json=load_fixture("courses.json"))
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/101/assignments", json=load_fixture("assignments_course_101.json"))
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/102/assignments", json=load_fixture("assignments_course_102.json"))
+    httpx_mock.add_response(url=COURSES_URL, json=load_fixture("courses.json"))
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/101/assignments?per_page=100", json=load_fixture("assignments_course_101.json"))
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/102/assignments?per_page=100", json=load_fixture("assignments_course_102.json"))
     from canvas_mcp.tools.assignments import get_upcoming_deadlines
     result = await get_upcoming_deadlines(make_client(), days=7)
     names = [r["name"] for r in result]
@@ -115,9 +126,9 @@ async def test_deadlines_excludes_past_due(httpx_mock: HTTPXMock):
 
 
 async def test_deadlines_result_shape(httpx_mock: HTTPXMock):
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses", json=load_fixture("courses.json"))
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/101/assignments", json=load_fixture("assignments_course_101.json"))
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/102/assignments", json=load_fixture("assignments_course_102.json"))
+    httpx_mock.add_response(url=COURSES_URL, json=load_fixture("courses.json"))
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/101/assignments?per_page=100", json=load_fixture("assignments_course_101.json"))
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/102/assignments?per_page=100", json=load_fixture("assignments_course_102.json"))
     from canvas_mcp.tools.assignments import get_upcoming_deadlines
     result = await get_upcoming_deadlines(make_client(), days=7)
     for item in result:
@@ -128,9 +139,9 @@ async def test_deadlines_result_shape(httpx_mock: HTTPXMock):
 
 
 async def test_deadlines_one_course_429_still_returns_other(httpx_mock: HTTPXMock):
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses", json=load_fixture("courses.json"))
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/101/assignments", status_code=429)
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/102/assignments", json=load_fixture("assignments_course_102.json"))
+    httpx_mock.add_response(url=COURSES_URL, json=load_fixture("courses.json"))
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/101/assignments?per_page=100", status_code=429)
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/102/assignments?per_page=100", json=load_fixture("assignments_course_102.json"))
     from canvas_mcp.tools.assignments import get_upcoming_deadlines
     result = await get_upcoming_deadlines(make_client(), days=7)
     # Course 102 results should still come through
@@ -139,8 +150,26 @@ async def test_deadlines_one_course_429_still_returns_other(httpx_mock: HTTPXMoc
     assert "API Design Project" in names
 
 
+async def test_deadlines_follows_assignment_pagination(httpx_mock: HTTPXMock):
+    page2_url = f"{BASE_URL}/api/v1/courses/101/assignments?page=2&per_page=100"
+    page1 = [a for a in load_fixture("assignments_course_101.json") if a["name"] != "Midterm Essay"]
+    page2 = [a for a in load_fixture("assignments_course_101.json") if a["name"] == "Midterm Essay"]
+    httpx_mock.add_response(url=COURSES_URL, json=load_fixture("courses.json"))
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/courses/101/assignments?per_page=100",
+        json=page1,
+        headers={"Link": f'<{page2_url}>; rel="next"'},
+    )
+    httpx_mock.add_response(url=page2_url, json=page2)
+    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses/102/assignments?per_page=100", json=load_fixture("assignments_course_102.json"))
+    from canvas_mcp.tools.assignments import get_upcoming_deadlines
+    result = await get_upcoming_deadlines(make_client(), days=7)
+    names = [r["name"] for r in result]
+    assert names == ["API Design Project", "Midterm Essay", "Lab Report"]
+
+
 async def test_deadlines_courses_401(httpx_mock: HTTPXMock):
-    httpx_mock.add_response(url=f"{BASE_URL}/api/v1/courses", status_code=401)
+    httpx_mock.add_response(url=COURSES_URL, status_code=401)
     from canvas_mcp.tools.assignments import get_upcoming_deadlines
     result = await get_upcoming_deadlines(make_client(), days=7)
     assert isinstance(result, dict)
@@ -153,7 +182,7 @@ async def test_deadlines_courses_401(httpx_mock: HTTPXMock):
 
 async def test_missing_excludes_excused_and_submitted(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions?per_page=100",
         json=load_fixture("missing_submissions.json"),
     )
     from canvas_mcp.tools.assignments import get_missing_assignments
@@ -165,7 +194,7 @@ async def test_missing_excludes_excused_and_submitted(httpx_mock: HTTPXMock):
 
 async def test_missing_excludes_excused(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions?per_page=100",
         json=load_fixture("missing_submissions.json"),
     )
     from canvas_mcp.tools.assignments import get_missing_assignments
@@ -177,7 +206,7 @@ async def test_missing_excludes_excused(httpx_mock: HTTPXMock):
 
 async def test_missing_result_shape(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions?per_page=100",
         json=load_fixture("missing_submissions.json"),
     )
     from canvas_mcp.tools.assignments import get_missing_assignments
@@ -190,7 +219,7 @@ async def test_missing_result_shape(httpx_mock: HTTPXMock):
 
 async def test_missing_empty_list(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions?per_page=100",
         json=[],
     )
     from canvas_mcp.tools.assignments import get_missing_assignments
@@ -198,9 +227,22 @@ async def test_missing_empty_list(httpx_mock: HTTPXMock):
     assert result == []
 
 
+async def test_missing_follows_pagination(httpx_mock: HTTPXMock):
+    page2_url = f"{BASE_URL}/api/v1/users/self/missing_submissions?page=2&per_page=100"
+    httpx_mock.add_response(
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions?per_page=100",
+        json=[],
+        headers={"Link": f'<{page2_url}>; rel="next"'},
+    )
+    httpx_mock.add_response(url=page2_url, json=load_fixture("missing_submissions.json"))
+    from canvas_mcp.tools.assignments import get_missing_assignments
+    result = await get_missing_assignments(make_client())
+    assert [r["name"] for r in result] == ["Truly Missing Assignment"]
+
+
 async def test_missing_401(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions?per_page=100",
         status_code=401,
     )
     from canvas_mcp.tools.assignments import get_missing_assignments
@@ -211,7 +253,7 @@ async def test_missing_401(httpx_mock: HTTPXMock):
 
 async def test_missing_404_descriptive(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{BASE_URL}/api/v1/users/self/missing_submissions",
+        url=f"{BASE_URL}/api/v1/users/self/missing_submissions?per_page=100",
         status_code=404,
     )
     from canvas_mcp.tools.assignments import get_missing_assignments
