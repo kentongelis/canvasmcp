@@ -64,6 +64,50 @@ async def test_grade_report_result_shape(httpx_mock: HTTPXMock):
         assert "current_score" in item
 
 
+async def test_grade_report_requests_student_enrollments(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=re.compile(re.escape(f"{BASE_URL}/api/v1/courses")),
+        json=load_fixture("courses_with_grades.json"),
+    )
+    from canvas_mcp.tools.grades import get_grade_report
+    await get_grade_report(make_client())
+    request = httpx_mock.get_request()
+    assert request.url.params["enrollment_type"] == "student"
+    assert request.url.params["enrollment_state"] == "active"
+    assert request.url.params["include[]"] == "total_scores"
+
+
+async def test_grade_report_uses_student_enrollment_not_first(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=re.compile(re.escape(f"{BASE_URL}/api/v1/courses")),
+        json=[{
+            "id": 104,
+            "name": "ACS 4310 Systems",
+            "enrollments": [
+                {"type": "ta", "enrollment_state": "active"},
+                {"type": "student", "enrollment_state": "active", "computed_current_score": 92.0},
+            ],
+        }],
+    )
+    from canvas_mcp.tools.grades import get_grade_report
+    result = await get_grade_report(make_client())
+    assert result == [{"course_name": "ACS 4310 Systems", "current_score": 92.0}]
+
+
+async def test_grade_report_no_student_enrollment_returns_null(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=re.compile(re.escape(f"{BASE_URL}/api/v1/courses")),
+        json=[{
+            "id": 105,
+            "name": "ACS 4320 Security",
+            "enrollments": [{"type": "observer", "enrollment_state": "active"}],
+        }],
+    )
+    from canvas_mcp.tools.grades import get_grade_report
+    result = await get_grade_report(make_client())
+    assert result[0]["current_score"] is None
+
+
 async def test_grade_report_401(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url=re.compile(re.escape(f"{BASE_URL}/api/v1/courses")),
