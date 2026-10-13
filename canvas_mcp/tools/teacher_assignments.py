@@ -59,3 +59,39 @@ async def get_grading_queue(client: CanvasClient) -> list[dict] | dict:
 
     queue.sort(key=lambda a: a["needs_grading_count"], reverse=True)
     return queue
+
+
+async def get_missing_by_student(client: CanvasClient, course_id: int) -> list[dict] | dict:
+    params = {
+        "student_ids[]": "all",
+        "include[]": ["assignment", "user"],
+    }
+    data = await client.get_all_pages(f"/courses/{course_id}/students/submissions", params=params)
+    if isinstance(data, dict) and "error" in data:
+        return data
+
+    by_student: dict[int, dict] = {}
+    for s in data:
+        if not s.get("missing") or s.get("excused") or s.get("submitted_at") is not None:
+            continue
+        user = s.get("user") or {}
+        assignment = s.get("assignment") or {}
+        student_id = s.get("user_id", user.get("id"))
+        entry = by_student.setdefault(
+            student_id,
+            {"student_id": student_id, "student_name": user.get("name"), "missing": []},
+        )
+        entry["missing"].append(
+            {
+                "assignment_id": s.get("assignment_id", assignment.get("id")),
+                "name": assignment.get("name"),
+                "due_at": assignment.get("due_at"),
+                "points_possible": assignment.get("points_possible"),
+            }
+        )
+
+    students = list(by_student.values())
+    for student in students:
+        student["missing"].sort(key=lambda a: a["due_at"] or "")
+    students.sort(key=lambda s: s["student_name"] or "")
+    return students

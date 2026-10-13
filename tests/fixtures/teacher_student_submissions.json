@@ -1,0 +1,104 @@
+[
+  {
+    "id": 9001,
+    "user_id": 501,
+    "assignment_id": 3002,
+    "workflow_state": "unsubmitted",
+    "submitted_at": null,
+    "missing": true,
+    "late": false,
+    "excused": null,
+    "assignment": {
+      "id": 3002,
+      "name": "Week 3 Reflection",
+      "due_at": "2026-05-01T23:59:00Z",
+      "points_possible": 20
+    },
+    "user": {"id": 501, "name": "Ana Reyes", "sortable_name": "Reyes, Ana"}
+  },
+  {
+    "id": 9002,
+    "user_id": 501,
+    "assignment_id": 3003,
+    "workflow_state": "unsubmitted",
+    "submitted_at": null,
+    "missing": true,
+    "late": false,
+    "excused": null,
+    "assignment": {
+      "id": 3003,
+      "name": "Lab 1",
+      "due_at": "2026-04-24T23:59:00Z",
+      "points_possible": 30
+    },
+    "user": {"id": 501, "name": "Ana Reyes", "sortable_name": "Reyes, Ana"}
+  },
+  {
+    "id": 9003,
+    "user_id": 502,
+    "assignment_id": 3002,
+    "workflow_state": "unsubmitted",
+    "submitted_at": null,
+    "missing": false,
+    "late": false,
+    "excused": true,
+    "assignment": {
+      "id": 3002,
+      "name": "Week 3 Reflection",
+      "due_at": "2026-05-01T23:59:00Z",
+      "points_possible": 20
+    },
+    "user": {"id": 502, "name": "Ben Carter", "sortable_name": "Carter, Ben"}
+  },
+  {
+    "id": 9004,
+    "user_id": 502,
+    "assignment_id": 3003,
+    "workflow_state": "submitted",
+    "submitted_at": "2026-04-26T10:15:00Z",
+    "missing": false,
+    "late": true,
+    "excused": null,
+    "assignment": {
+      "id": 3003,
+      "name": "Lab 1",
+      "due_at": "2026-04-24T23:59:00Z",
+      "points_possible": 30
+    },
+    "user": {"id": 502, "name": "Ben Carter", "sortable_name": "Carter, Ben"}
+  },
+  {
+    "id": 9005,
+    "user_id": 503,
+    "assignment_id": 3002,
+    "workflow_state": "graded",
+    "submitted_at": "2026-05-01T20:00:00Z",
+    "missing": false,
+    "late": false,
+    "excused": null,
+    "assignment": {
+      "id": 3002,
+      "name": "Week 3 Reflection",
+      "due_at": "2026-05-01T23:59:00Z",
+      "points_possible": 20
+    },
+    "user": {"id": 503, "name": "Chloe Diaz", "sortable_name": "Diaz, Chloe"}
+  },
+  {
+    "id": 9006,
+    "user_id": 503,
+    "assignment_id": 3003,
+    "workflow_state": "unsubmitted",
+    "submitted_at": null,
+    "missing": true,
+    "late": false,
+    "excused": null,
+    "assignment": {
+      "id": 3003,
+      "name": "Lab 1",
+      "due_at": "2026-04-24T23:59:00Z",
+      "points_possible": 30
+    },
+    "user": {"id": 503, "name": "Chloe Diaz", "sortable_name": "Diaz, Chloe"}
+  }
+]

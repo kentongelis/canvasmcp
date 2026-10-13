@@ -203,3 +203,69 @@ async def test_grading_queue_courses_401(httpx_mock: HTTPXMock):
     result = await get_grading_queue(make_client())
     assert isinstance(result, dict)
     assert result["error"] == 401
+
+
+# ---------------------------------------------------------------------------
+# get_missing_by_student
+# ---------------------------------------------------------------------------
+
+COURSE_201_SUBMISSIONS_URL = (
+    f"{BASE_URL}/api/v1/courses/201/students/submissions"
+    "?per_page=100&student_ids[]=all&include[]=assignment&include[]=user"
+)
+
+
+async def test_missing_by_student_only_truly_missing_grouped(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=COURSE_201_SUBMISSIONS_URL, json=load_fixture("teacher_student_submissions.json"))
+    from canvas_mcp.tools.teacher_assignments import get_missing_by_student
+    result = await get_missing_by_student(make_client(), 201)
+
+    assert isinstance(result, list)
+    # Ana: two missing items, oldest due first. Chloe: one missing item.
+    # Ben's excused and late-but-submitted items are not missing.
+    assert [(s["student_name"], [a["name"] for a in s["missing"]]) for s in result] == [
+        ("Ana Reyes", ["Lab 1", "Week 3 Reflection"]),
+        ("Chloe Diaz", ["Lab 1"]),
+    ]
+
+
+async def test_missing_by_student_leaves_out_students_with_nothing_missing(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=COURSE_201_SUBMISSIONS_URL, json=load_fixture("teacher_student_submissions.json"))
+    from canvas_mcp.tools.teacher_assignments import get_missing_by_student
+    result = await get_missing_by_student(make_client(), 201)
+    assert 502 not in [s["student_id"] for s in result]  # Ben: excused + late submitted
+
+
+async def test_missing_by_student_result_shape(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=COURSE_201_SUBMISSIONS_URL, json=load_fixture("teacher_student_submissions.json"))
+    from canvas_mcp.tools.teacher_assignments import get_missing_by_student
+    result = await get_missing_by_student(make_client(), 201)
+    for student in result:
+        assert set(student) == {"student_id", "student_name", "missing"}
+        for item in student["missing"]:
+            assert set(item) == {"assignment_id", "name", "due_at", "points_possible"}
+    assert result[0]["student_id"] == 501
+    assert result[0]["missing"][0] == {
+        "assignment_id": 3003,
+        "name": "Lab 1",
+        "due_at": "2026-04-24T23:59:00Z",
+        "points_possible": 30,
+    }
+
+
+async def test_missing_by_student_requests_all_students_with_includes(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=COURSE_201_SUBMISSIONS_URL, json=[])
+    from canvas_mcp.tools.teacher_assignments import get_missing_by_student
+    result = await get_missing_by_student(make_client(), 201)
+    assert result == []
+    request = httpx_mock.get_request()
+    assert request.url.params["student_ids[]"] == "all"
+    assert request.url.params.get_list("include[]") == ["assignment", "user"]
+
+
+async def test_missing_by_student_404(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=COURSE_201_SUBMISSIONS_URL, status_code=404)
+    from canvas_mcp.tools.teacher_assignments import get_missing_by_student
+    result = await get_missing_by_student(make_client(), 201)
+    assert isinstance(result, dict)
+    assert result["error"] == 404
