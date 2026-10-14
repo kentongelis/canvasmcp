@@ -269,3 +269,60 @@ async def test_missing_by_student_404(httpx_mock: HTTPXMock):
     result = await get_missing_by_student(make_client(), 201)
     assert isinstance(result, dict)
     assert result["error"] == 404
+
+
+# ---------------------------------------------------------------------------
+# get_assignment_overview
+# ---------------------------------------------------------------------------
+
+ASSIGNMENT_201_URL = f"{BASE_URL}/api/v1/courses/201/assignments/1001"
+SUBMISSION_SUMMARY_201_URL = f"{ASSIGNMENT_201_URL}/submission_summary"
+
+
+async def test_assignment_overview_merges_detail_rubric_and_counts(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=ASSIGNMENT_201_URL, json=load_fixture("assignment_detail.json"))
+    httpx_mock.add_response(
+        url=SUBMISSION_SUMMARY_201_URL,
+        json=load_fixture("teacher_submission_summary.json"),
+    )
+    from canvas_mcp.tools.teacher_assignments import get_assignment_overview
+    result = await get_assignment_overview(make_client(), course_id=201, assignment_id=1001)
+    assert result["name"] == "Midterm Essay"
+    assert result["points_possible"] == 100
+    assert len(result["rubric_criteria"]) == 4
+    assert "<" not in result["description"]
+    assert result["submissions"] == {"graded": 12, "ungraded": 5, "not_submitted": 3}
+
+
+async def test_assignment_overview_result_shape(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=ASSIGNMENT_201_URL, json=load_fixture("assignment_detail.json"))
+    httpx_mock.add_response(
+        url=SUBMISSION_SUMMARY_201_URL,
+        json=load_fixture("teacher_submission_summary.json"),
+    )
+    from canvas_mcp.tools.teacher_assignments import get_assignment_overview
+    result = await get_assignment_overview(make_client(), course_id=201, assignment_id=1001)
+    assert set(result) == {
+        "name", "description", "due_at", "points_possible", "rubric_criteria", "submissions",
+    }
+
+
+async def test_assignment_overview_detail_404(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=ASSIGNMENT_201_URL, status_code=404)
+    httpx_mock.add_response(
+        url=SUBMISSION_SUMMARY_201_URL,
+        json=load_fixture("teacher_submission_summary.json"),
+    )
+    from canvas_mcp.tools.teacher_assignments import get_assignment_overview
+    result = await get_assignment_overview(make_client(), course_id=201, assignment_id=1001)
+    assert isinstance(result, dict)
+    assert result["error"] == 404
+
+
+async def test_assignment_overview_summary_404(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=ASSIGNMENT_201_URL, json=load_fixture("assignment_detail.json"))
+    httpx_mock.add_response(url=SUBMISSION_SUMMARY_201_URL, status_code=404)
+    from canvas_mcp.tools.teacher_assignments import get_assignment_overview
+    result = await get_assignment_overview(make_client(), course_id=201, assignment_id=1001)
+    assert isinstance(result, dict)
+    assert result["error"] == 404

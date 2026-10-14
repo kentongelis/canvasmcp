@@ -1,7 +1,11 @@
 import asyncio
 
 from canvas_mcp.canvas_client import CanvasClient
-from canvas_mcp.tools.assignments import _deadlines_for_courses, _has_active_enrollment
+from canvas_mcp.tools.assignments import (
+    _deadlines_for_courses,
+    _has_active_enrollment,
+    get_assignment_detail,
+)
 
 
 async def list_teaching_courses(client: CanvasClient) -> list[dict] | dict:
@@ -95,3 +99,22 @@ async def get_missing_by_student(client: CanvasClient, course_id: int) -> list[d
         student["missing"].sort(key=lambda a: a["due_at"] or "")
     students.sort(key=lambda s: s["student_name"] or "")
     return students
+
+
+async def get_assignment_overview(client: CanvasClient, course_id: int, assignment_id: int) -> dict:
+    detail, summary = await asyncio.gather(
+        get_assignment_detail(client, course_id, assignment_id),
+        client.get(f"/courses/{course_id}/assignments/{assignment_id}/submission_summary"),
+    )
+    if isinstance(detail, dict) and "error" in detail:
+        return detail
+    if isinstance(summary, dict) and "error" in summary:
+        return summary
+    return {
+        **detail,
+        "submissions": {
+            "graded": summary.get("graded", 0),
+            "ungraded": summary.get("ungraded", 0),
+            "not_submitted": summary.get("not_submitted", 0),
+        },
+    }
