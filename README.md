@@ -7,13 +7,20 @@ An [MCP](https://modelcontextprotocol.io) server that connects Claude (or any MC
 > "How are my grades looking?"
 > "What did my biology professor announce?"
 
-It also includes a small command-line assistant built on the Anthropic API, for use outside an MCP client.
+Instructors get the same thing for the courses they teach:
+
+> "What needs grading this week?"
+> "Who's missing work in my web class?"
+> "How is my 4220 section doing?"
+
+It also includes two small command-line assistants built on the Anthropic API, one for students and one for teachers, for use outside an MCP client.
 
 ---
 
 ## Features
 
-- **Six read-only Canvas tools.** Courses, upcoming deadlines, missing work, grades, announcements and assignment details.
+- **Six read-only student tools.** Courses, upcoming deadlines, missing work, grades, announcements and assignment details.
+- **Seven read-only teacher tools.** Teaching courses, deadlines with ungraded counts, a grading queue, missing work by student, class grades, course announcements and an assignment overview with submission counts.
 - **Works with any Canvas instance.** You only need your school's Canvas URL and a personal access token. No OAuth app or admin setup.
 - **Never writes to Canvas.** Every tool only reads data, so nothing can submit, edit or delete anything.
 - **Handles real-world Canvas quirks.** It fetches every page of results, filters out inactive courses, and returns readable errors instead of crashing (bad token, disabled endpoint, rate limit, network failure).
@@ -21,6 +28,8 @@ It also includes a small command-line assistant built on the Anthropic API, for 
 ---
 
 ## Tools
+
+### Student tools
 
 | Tool | What it returns | Canvas endpoint |
 |---|---|---|
@@ -30,6 +39,22 @@ It also includes a small command-line assistant built on the Anthropic API, for 
 | `get_grade_report_tool` | Current score per course, or `null` if nothing has been graded yet | `GET /courses?include[]=total_scores` |
 | `get_announcements_tool(keyword=None)` | Recent announcements, optionally filtered by a keyword | `GET /announcements` |
 | `get_assignment_detail_tool(course_id, assignment_id)` | Full instructions and rubric for one assignment | `GET /courses/:id/assignments/:id` |
+
+### Teacher tools
+
+These only return data for courses where your Canvas account has an active teacher enrollment. They're read-only too, so nothing can grade, post or message students.
+
+| Tool | What it returns | Canvas endpoint |
+|---|---|---|
+| `list_teaching_courses_tool` | Courses you teach, with their IDs | `GET /courses?enrollment_type=teacher` |
+| `get_teaching_deadlines_tool(days=7)` | Assignments due in the next *N* days across your courses, soonest first, with how many submissions need grading | `GET /courses/:id/assignments` |
+| `get_grading_queue_tool` | Assignments with ungraded submissions across your courses, most ungraded first | `GET /courses/:id/assignments` |
+| `get_missing_by_student_tool(course_id)` | Unsubmitted, non-excused work in one course, grouped by student | `GET /courses/:id/students/submissions` |
+| `get_class_grades_tool(course_id)` | Each student's current score, or `null` if nothing has been graded yet | `GET /courses/:id/enrollments` |
+| `get_teaching_announcements_tool(keyword=None)` | Recent announcements in your courses, optionally filtered by a keyword | `GET /announcements` |
+| `get_assignment_overview_tool(course_id, assignment_id)` | Instructions, rubric, and graded / ungraded / not-submitted counts for one assignment | `GET /courses/:id/assignments/:id` + `.../submission_summary` |
+
+All 13 tools are served by the same MCP server. The teacher tools filter to courses you teach, so a student token gets empty results from them. The student tools don't filter by role, so with a teacher token `list_courses_tool` also lists the courses you teach.
 
 ---
 
@@ -146,7 +171,9 @@ mcp dev canvas_mcp/server.py
 
 ---
 
-## Command-line assistant
+## Command-line assistants
+
+### Student assistant
 
 `agent/assistant.py` is a standalone assistant that uses Claude through the Anthropic API. It calls the same Canvas tools, chaining several of them when a question needs it. For example, to answer "what's due in my chemistry class?" it first looks up your courses to find which one is chemistry.
 
@@ -157,6 +184,17 @@ python -m agent.assistant "what do I need to do this week?"
 python -m agent.assistant "am I missing anything?"
 python -m agent.assistant "how are my grades?"
 python -m agent.assistant          # defaults to "What do I need to do this week?"
+```
+
+### Teacher assistant
+
+`agent/teacher_assistant.py` works the same way with the teacher tools and its own system prompt. When you name a course ("my web class"), it looks up your teaching courses first to find the right one. It's read-only, so if you ask it to grade or post something it'll point you to Canvas instead.
+
+```bash
+python -m agent.teacher_assistant "what needs grading?"
+python -m agent.teacher_assistant "who is missing work in my web class?"
+python -m agent.teacher_assistant "how is my 4220 section doing?"
+python -m agent.teacher_assistant  # defaults to "What needs grading this week?"
 ```
 
 ---
@@ -179,6 +217,7 @@ Known limitations:
 
 - **Missing submissions may not work at your school.** Some Canvas administrators disable `/users/self/missing_submissions`. If so, that tool returns a 404 and the other tools are unaffected.
 - **Grades reflect what Canvas shows you.** If an instructor hides grades or the final grade, the score will be `null` or out of date.
+- **Teacher tools need a teacher enrollment.** TA or designer roles, or a token from a student account, won't see teaching courses. Per-course teacher tools return a Canvas permission error for courses you don't teach.
 - **Read-only.** Nothing can submit assignments or post to Canvas, by design.
 
 ---
@@ -196,10 +235,13 @@ canvasmcp/
 │       ├── assignments.py   # courses, deadlines, missing work, assignment detail
 │       ├── grades.py        # grade report
 │       ├── announcements.py # announcements
-│       ├── teacher_assignments.py  # teacher tools (not yet registered)
-│       └── teacher_grades.py       # teacher tools (not yet registered)
+│       ├── teacher_assignments.py   # teaching courses, deadlines, grading queue,
+│       │                            # missing by student, assignment overview
+│       ├── teacher_grades.py        # class grades
+│       └── teacher_announcements.py # announcements in taught courses
 ├── agent/
-│   └── assistant.py         # Anthropic API tool-use loop and CLI
+│   ├── assistant.py         # student assistant: Anthropic API tool-use loop and CLI
+│   └── teacher_assistant.py # teacher assistant: same loop, teacher tools and prompt
 ├── tests/                   # pytest suite
 │   └── fixtures/            # mocked Canvas API responses
 ├── .env.example
@@ -219,11 +261,11 @@ python -m pytest
 
 1. Write an async function in `canvas_mcp/tools/` that takes a `CanvasClient` and returns data or the client's error dict.
 2. Register it in `canvas_mcp/server.py` with `@mcp.tool()`.
-3. To make it available to the CLI assistant, add it to `TOOLS` and the dispatcher in `agent/assistant.py`.
+3. To make it available to a CLI assistant, add it to `TOOLS` and the dispatcher in `agent/assistant.py` (student) or `agent/teacher_assistant.py` (teacher).
 4. Add a fixture in `tests/fixtures/`, plus a test for the normal case and one for an error.
 
 ### Roadmap
 
-- **Teacher tools.** Read-only tools for instructors: teaching courses, upcoming deadlines with ungraded counts, a grading queue, missing work by student and class grades. They're written and tested in `canvas_mcp/tools/teacher_*.py` but not yet exposed by the server.
+- **Syllabus search (RAG).** Index course syllabi and rubrics in a vector store so the assistant can answer questions like "what's the late policy?" that aren't in Canvas's structured API.
 
 See [`architecture.md`](architecture.md) for design details.
